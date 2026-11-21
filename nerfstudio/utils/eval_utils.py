@@ -29,6 +29,7 @@ import yaml
 from nerfstudio.configs.method_configs import all_methods
 from nerfstudio.engine.trainer import TrainerConfig
 from nerfstudio.pipelines.base_pipeline import Pipeline
+from nerfstudio.utils.misc import load_checkpoint_state
 from nerfstudio.utils.rich_utils import CONSOLE
 
 
@@ -59,7 +60,7 @@ def eval_load_checkpoint(config: TrainerConfig, pipeline: Pipeline) -> Tuple[Pat
         load_step = config.load_step
     load_path = config.load_dir / f"step-{load_step:09d}.ckpt"
     assert load_path.exists(), f"Checkpoint {load_path} does not exist"
-    loaded_state = torch.load(load_path, map_location="cpu", weights_only=False)
+    loaded_state = load_checkpoint_state(load_path)
     pipeline.load_pipeline(loaded_state["pipeline"], loaded_state["step"])
     CONSOLE.print(f":white_check_mark: Done loading checkpoint from {load_path}")
     return load_path, load_step

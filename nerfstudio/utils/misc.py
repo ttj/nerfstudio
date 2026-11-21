@@ -218,3 +218,27 @@ def get_orig_class(obj, default=None):
             finally:
                 del frame
         return default
+
+
+def load_checkpoint_state(path: Any) -> Dict[str, Any]:
+    """torch.load a nerfstudio checkpoint (step-*.ckpt) with weights_only=True.
+
+    torch >= 2.6 defaults torch.load to weights_only=True, which refuses the two non-tensor globals that a
+    nerfstudio checkpoint pickles: numpy.dtype (with, on numpy 2, its numeric DType class) and numpy's scalar
+    constructor (numpy.core.multiarray.scalar, renamed numpy._core.multiarray.scalar in numpy 2; both spellings
+    occur in checkpoints). Those, and only those, are allowlisted here, so loading a checkpoint never unpickles arbitrary objects. torch < 2.5 has no
+    torch.serialization.safe_globals; there the load stays weights_only=True (fail closed) and a checkpoint
+    holding numpy scalars is refused rather than unpickled.
+    """
+    if not hasattr(torch.serialization, "safe_globals"):
+        return torch.load(path, map_location="cpu", weights_only=True)
+    import numpy as np  # pylint: disable=import-outside-toplevel
+
+    core = getattr(np, "_core", None) or np.core
+    scalar = core.multiarray.scalar
+    # numpy 2 pickles a dtype through its DType class (e.g. numpy.dtypes.Float64DType): allow the plain numeric
+    # ones only. numpy.dtypes.ObjectDType is deliberately NOT allowed, so an object-dtype scalar is refused.
+    numeric = [type(np.dtype(c)) for c in "?bhilqBHILQefdgFDG"]
+    allow = [np.dtype, (scalar, "numpy.core.multiarray.scalar"), (scalar, "numpy._core.multiarray.scalar"), *numeric]
+    with torch.serialization.safe_globals(allow):
+        return torch.load(path, map_location="cpu", weights_only=True)
