@@ -38,6 +38,15 @@ It is possible to load a pretrained model by running
 ns-train nerfacto --data data/nerfstudio/poster --load-dir {outputs/.../nerfstudio_models}
 ```
 
+Both `--load-dir` and `--load-checkpoint` rebuild the optimizer bindings after
+loading the pipeline and before restoring optimizer moments, schedulers and the
+gradient scaler. This matters for Splatfacto, whose checkpoint loader replaces
+Gaussian parameters even when their shapes have not changed. Fresh training
+keeps its original optimizer. The CPU regression contract is
+`tests/engine/test_checkpoint_optimizer_binding.py`; it exercises the production
+checkpoint/model method sources without renderer or CUDA dependencies. This is
+an optimizer-ownership check, not a photometric-quality or full-training claim.
+
 ## Visualize existing run
 
 Given a pretrained model checkpoint, you can start the viewer by running
