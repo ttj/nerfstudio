@@ -433,6 +433,9 @@ class Trainer:
             self._start_step = loaded_state["step"] + 1
             # load the checkpoints for pipeline, optimizers, and gradient scalar
             self.pipeline.load_pipeline(loaded_state["pipeline"], loaded_state["step"])
+            # Splatfacto resizes/replaces Parameters while loading. Bind optimizers
+            # to those loaded Parameters before restoring their moments/schedules.
+            self.optimizers = self.setup_optimizers()
             self.optimizers.load_optimizers(loaded_state["optimizers"])
             if "schedulers" in loaded_state and self.config.load_scheduler:
                 self.optimizers.load_schedulers(loaded_state["schedulers"])
@@ -444,6 +447,7 @@ class Trainer:
             self._start_step = loaded_state["step"] + 1
             # load the checkpoints for pipeline, optimizers, and gradient scalar
             self.pipeline.load_pipeline(loaded_state["pipeline"], loaded_state["step"])
+            self.optimizers = self.setup_optimizers()
             self.optimizers.load_optimizers(loaded_state["optimizers"])
             if "schedulers" in loaded_state and self.config.load_scheduler:
                 self.optimizers.load_schedulers(loaded_state["schedulers"])
